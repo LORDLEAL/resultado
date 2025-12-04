@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Notas por CPF</title>
-    <!-- Carrega o Tailwind CSS para estilização rápida e responsiva -->
+    <title>Consulta de Notas por CPF (Seguro)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuração do Tailwind para usar a fonte Inter e cores customizadas -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Cinza claro de fundo */
+            background-color: #f3f4f6;
         }
     </style>
 </head>
@@ -20,17 +18,16 @@
     <div class="w-full max-w-lg bg-white shadow-2xl rounded-xl p-8 space-y-6">
         <header class="text-center">
             <h1 class="text-3xl font-bold text-gray-800">Consulta de Desempenho Escolar</h1>
-            <p class="text-gray-500 mt-2">Mestre Leal, digite seu CPF para verificar sua situação e média.</p>
+            <p class="text-gray-500 mt-2">Mestre Leal, digite seu CPF para verificar sua situação e média de forma segura.</p>
         </header>
 
-        <!-- Formulário de Consulta -->
         <div class="space-y-4">
             <label for="cpfInput" class="block text-sm font-medium text-gray-700">CPF do Aluno (Apenas números)</label>
             <input
                 type="text"
                 id="cpfInput"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg transition duration-150"
-                placeholder="Ex: 90817281568"
+                placeholder="Ex: 908.172.815-68"
                 maxlength="14"
                 oninput="formatCPF(this)"
             >
@@ -43,47 +40,32 @@
             </button>
         </div>
 
-        <!-- Área de Resultados -->
         <div id="resultsArea" class="hidden mt-6">
             <h2 class="text-xl font-semibold mb-3 text-gray-800 border-b pb-2">Resultado da Consulta:</h2>
             <div id="resultCard" class="p-5 rounded-xl shadow-inner transition-all duration-300">
-                <!-- Detalhes do aluno serão injetados aqui -->
-            </div>
+                </div>
         </div>
 
-        <!-- Área de Mensagens de Erro/Alerta -->
         <div id="messageArea" class="hidden p-4 rounded-lg text-center font-medium">
-            <!-- Mensagens de erro/não encontrado serão injetadas aqui -->
-        </div>
+            </div>
 
     </div>
 
     <script>
-        // Dados dos alunos, extraídos do seu CSV e formatados para consulta.
-        // O CPF deve ser armazenado limpo (apenas números) para facilitar a comparação.
-        const studentData = [
-            // Dados fornecidos por Mestre Leal
-            { nome: 'WASHINGTON LEAL', cpf: '90817281568', media: 9.0, resultado: 'APROVADO' },
-            { nome: 'PIETRO LEAL', cpf: '90817281569', media: 9.5, resultado: 'APROVADO' },
-            { nome: 'ZEFERINA REGO', cpf: '90817281570', media: 5.0, resultado: 'REPROVADO' },
-
-            // Exemplos adicionais para demonstração
-            { nome: 'ANA SILVA', cpf: '12345678901', media: 8.2, resultado: 'APROVADO' },
-            { nome: 'BRUNO COSTA', cpf: '11223344556', media: 4.8, resultado: 'REPROVADO' },
-            { nome: 'CARLA GOMES', cpf: '00011122233', media: 6.0, resultado: 'APROVADO' },
-            { nome: 'DAVID ROCHA', cpf: '99988877766', media: 5.9, resultado: 'REPROVADO' },
-        ];
+        // 🚨 NOVO: URL do Apps Script para comunicação segura.
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4IZXsOQfQVUAN4G-OVcCr4dggvVGnJqmYYOiOVefKPmVEfCdwUrGAUZNoy2y-Z1zc/exec';
+        
+        // REMOVIDO: A lista const studentData foi removida daqui para proteger os dados!
 
         const resultsArea = document.getElementById('resultsArea');
         const resultCard = document.getElementById('resultCard');
         const messageArea = document.getElementById('messageArea');
 
-        // Função para formatar o CPF com pontos e traço no input (apenas visual)
+        // Função para formatar o CPF (visual)
         function formatCPF(input) {
-            let value = input.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+            let value = input.value.replace(/\D/g, '');
             if (value.length > 11) value = value.substring(0, 11);
 
-            // Aplica a máscara de CPF: 999.999.999-99
             if (value.length > 9) {
                 value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
             } else if (value.length > 6) {
@@ -97,13 +79,12 @@
             input.value = value;
         }
 
-        // Função principal para buscar o aluno
-        function searchStudent() {
+        // Função principal para buscar o aluno (agora chama o Apps Script)
+        async function searchStudent() {
             const cpfInput = document.getElementById('cpfInput');
             // Remove a máscara (pontos e traços) e espaços para a busca
             const cleanedCpf = cpfInput.value.replace(/[^\d]/g, '').trim();
 
-            // Limpa as áreas de resultado e mensagem
             resultsArea.classList.add('hidden');
             messageArea.classList.add('hidden');
             resultCard.innerHTML = '';
@@ -114,13 +95,32 @@
                 return;
             }
 
-            // Procura o aluno na lista de dados
-            const student = studentData.find(s => s.cpf === cleanedCpf);
+            try {
+                // Requisição POST segura para o Apps Script
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ cpf: cleanedCpf })
+                });
 
-            if (student) {
-                displayResults(student);
-            } else {
-                showMessage('CPF não encontrado. Verifique se o número está correto.', 'bg-red-100 text-red-800 border-red-300');
+                if (!response.ok) {
+                    throw new Error('Falha na comunicação com o Apps Script.');
+                }
+
+                const data = await response.json();
+
+                if (data.nome) { // Se o Apps Script retornou o objeto do aluno
+                    displayResults(data);
+                } else { // Se o aluno não foi encontrado ou erro retornado pelo script
+                    showMessage('CPF não encontrado ou houve um erro interno. Verifique o número.', 'bg-red-100 text-red-800 border-red-300');
+                }
+
+            } catch (error) {
+                console.error('Erro de consulta:', error);
+                showMessage('Ocorreu um erro de rede ou conexão. Tente novamente.', 'bg-gray-100 text-gray-700 border-gray-300');
             }
         }
 
@@ -133,24 +133,21 @@
 
         // Função para exibir os dados do aluno encontrado
         function displayResults(student) {
-            const isApproved = student.resultado === 'APROVADO';
+            const isApproved = student.resultado && student.resultado.toUpperCase() === 'APROVADO';
 
-            // Define as cores e ícones com base no resultado
             const statusColor = isApproved ? 'bg-green-600' : 'bg-red-600';
             const cardClasses = isApproved ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50';
             const icon = isApproved ? '✅' : '❌';
 
-            // Atualiza o estilo do card de resultado
             resultCard.className = `p-5 rounded-xl shadow-xl transition-all duration-300 border-2 ${cardClasses}`;
 
-            // Conteúdo HTML do cartão de resultado
             resultCard.innerHTML = `
                 <div class="space-y-4">
                     <p class="text-xl font-bold text-gray-900 uppercase">${student.nome}</p>
 
                     <div class="flex items-center space-x-3 p-3 rounded-lg ${statusColor} text-white shadow-lg">
                         <span class="text-2xl">${icon}</span>
-                        <span class="text-xl font-semibold">Situação: ${student.resultado}</span>
+                        <span class="text-xl font-semibold">Situação: ${student.resultado || 'N/A'}</span>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4 text-gray-700">
@@ -160,7 +157,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium text-gray-500">Média Final</p>
-                            <p class="text-lg font-semibold">${student.media.toFixed(1)}</p>
+                            <p class="text-lg font-semibold">${student.media ? parseFloat(student.media).toFixed(1) : 'N/A'}</p>
                         </div>
                     </div>
                 </div>
@@ -168,10 +165,10 @@
             resultsArea.classList.remove('hidden');
         }
 
-        // Inicializa o Listener para a tecla Enter no campo de CPF
+        // Inicializa o Listener para a tecla Enter
         document.getElementById('cpfInput').addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
-                event.preventDefault(); // Impede o envio do formulário padrão
+                event.preventDefault();
                 searchStudent();
             }
         });
