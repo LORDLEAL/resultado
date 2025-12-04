@@ -52,11 +52,9 @@
     </div>
 
     <script>
-        // 🚨 NOVO: URL do Apps Script para comunicação segura.
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4IZXsOQfQVUAN4G-OVcCr4dggvVGnJqmYYOiOVefKPmVEfCdwUrGAUZNoy2y-Z1zc/exec';
+        // 🚨 NOVO URL ATUALIZADO (com base no seu último deploy)
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9OsjblIhAPoNLLWk2GNSJcvPf-Le8sqvOcMBt2Dq_RrmmCn18J4hcGvx9ilemr4e1/exec';
         
-        // REMOVIDO: A lista const studentData foi removida daqui para proteger os dados!
-
         const resultsArea = document.getElementById('resultsArea');
         const resultCard = document.getElementById('resultCard');
         const messageArea = document.getElementById('messageArea');
@@ -79,10 +77,9 @@
             input.value = value;
         }
 
-        // Função principal para buscar o aluno (agora chama o Apps Script)
+        // Função principal para buscar o aluno
         async function searchStudent() {
             const cpfInput = document.getElementById('cpfInput');
-            // Remove a máscara (pontos e traços) e espaços para a busca
             const cleanedCpf = cpfInput.value.replace(/[^\d]/g, '').trim();
 
             resultsArea.classList.add('hidden');
@@ -106,20 +103,23 @@
                     body: JSON.stringify({ cpf: cleanedCpf })
                 });
 
+                // Verifica se a resposta HTTP é OK (200)
                 if (!response.ok) {
                     throw new Error('Falha na comunicação com o Apps Script.');
                 }
 
                 const data = await response.json();
 
-                if (data.nome) { // Se o Apps Script retornou o objeto do aluno
+                // O Back-end corrigido deve retornar data.nome se encontrar o aluno
+                if (data.nome) { 
                     displayResults(data);
-                } else { // Se o aluno não foi encontrado ou erro retornado pelo script
+                } else { 
                     showMessage('CPF não encontrado ou houve um erro interno. Verifique o número.', 'bg-red-100 text-red-800 border-red-300');
                 }
 
             } catch (error) {
                 console.error('Erro de consulta:', error);
+                // Mensagem de erro genérica para falhas de rede/API
                 showMessage('Ocorreu um erro de rede ou conexão. Tente novamente.', 'bg-gray-100 text-gray-700 border-gray-300');
             }
         }
@@ -133,21 +133,32 @@
 
         // Função para exibir os dados do aluno encontrado
         function displayResults(student) {
+            // Garante que o resultado seja comparado em maiúsculas, pois a planilha pode ter 'aprovado' ou 'APROVADO'
             const isApproved = student.resultado && student.resultado.toUpperCase() === 'APROVADO';
 
             const statusColor = isApproved ? 'bg-green-600' : 'bg-red-600';
             const cardClasses = isApproved ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50';
             const icon = isApproved ? '✅' : '❌';
+            
+            // Tratamento para resultados da planilha que você mudou (retido, sucesso)
+            let statusText = student.resultado || 'N/A';
+            if (statusText.toLowerCase() === 'retido') {
+                statusText = 'REPROVADO'; // Padroniza o texto
+            } else if (statusText.toLowerCase() === 'sucesso') {
+                 statusText = 'APROVADO';
+            }
+
 
             resultCard.className = `p-5 rounded-xl shadow-xl transition-all duration-300 border-2 ${cardClasses}`;
 
+            // O CPF é formatado sem pontos para exibição (se necessário, mas aqui exibimos o limpo)
             resultCard.innerHTML = `
                 <div class="space-y-4">
                     <p class="text-xl font-bold text-gray-900 uppercase">${student.nome}</p>
 
                     <div class="flex items-center space-x-3 p-3 rounded-lg ${statusColor} text-white shadow-lg">
                         <span class="text-2xl">${icon}</span>
-                        <span class="text-xl font-semibold">Situação: ${student.resultado || 'N/A'}</span>
+                        <span class="text-xl font-semibold">Situação: ${statusText}</span>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4 text-gray-700">
@@ -157,7 +168,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium text-gray-500">Média Final</p>
-                            <p class="text-lg font-semibold">${student.media ? parseFloat(student.media).toFixed(1) : 'N/A'}</p>
+                            <p class="text-lg font-semibold">${student.media !== null ? parseFloat(student.media).toFixed(1) : 'N/A'}</p>
                         </div>
                     </div>
                 </div>
