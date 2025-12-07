@@ -1,190 +1,152 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Notas por CPF</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consulta de Notas por CPF</title>
 
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Fonte -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-    </style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f3f4f6;
+}
+</style>
 </head>
+
 <body class="min-h-screen flex items-center justify-center p-4">
 
 <div class="w-full max-w-lg bg-white shadow-2xl rounded-xl p-8 space-y-6">
 
-    <!-- Cabeçalho -->
-    <header class="text-center">
-        <h1 class="text-3xl font-bold text-gray-800">Consulta de Desempenho</h1>
-        <p class="text-gray-500 mt-2">
-            Digite seu CPF para verificar sua situação e média final.
-        </p>
-    </header>
+<header class="text-center">
+    <h1 class="text-3xl font-bold text-gray-800">Consulta de Desempenho</h1>
+    <p class="text-gray-500 mt-2">
+        Digite seu CPF para verificar sua situação e média final.
+    </p>
+</header>
 
-    <!-- Entrada -->
-    <div class="space-y-4">
-        <label for="cpfInput" class="block text-sm font-medium text-gray-700">
-            CPF do usuário (apenas números)
-        </label>
+<div class="space-y-4">
+    <label class="block text-sm font-medium text-gray-700">
+        CPF do usuário (apenas números)
+    </label>
 
-        <input
-            type="text"
-            id="cpfInput"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg transition"
-            placeholder="Ex: 000.000.000-00"
-            maxlength="14"
-            oninput="formatCPF(this)"
-        >
+    <input
+        id="cpfInput"
+        type="text"
+        maxlength="14"
+        placeholder="000.000.000-00"
+        oninput="formatCPF(this)"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-indigo-500"
+    >
 
-        <button
-            onclick="searchStudent()"
-            class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition shadow-md focus:ring-4 focus:ring-indigo-500"
-        >
-            Consultar Dados
-        </button>
-    </div>
+    <button
+        onclick="searchStudent()"
+        class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition shadow-md">
+        Consultar Dados
+    </button>
+</div>
 
-    <!-- Resultado -->
-    <div id="resultsArea" class="hidden mt-6">
-        <h2 class="text-xl font-semibold mb-3 text-gray-800 border-b pb-2">
-            Resultado da Consulta
-        </h2>
+<div id="resultsArea" class="hidden mt-6">
+    <h2 class="text-xl font-semibold mb-3 border-b pb-2">Resultado</h2>
+    <div id="resultCard" class="p-5 rounded-xl shadow-xl"></div>
+</div>
 
-        <div id="resultCard" class="p-5 rounded-xl shadow-inner"></div>
-    </div>
-
-    <!-- Mensagens -->
-    <div id="messageArea" class="hidden p-4 rounded-lg text-center font-medium"></div>
+<div id="messageArea" class="hidden p-4 rounded-lg text-center font-medium"></div>
 
 </div>
 
 <script>
-    // URL DO GOOGLE APPS SCRIPT
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9OsjblIhAPoNLLWk2GNSJcvPf-Le8sqvOcMBt2Dq_RrmmCn18J4hcGvx9ilemr4e1/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyg5IQGd3eNA3fTmQr8DXRvaAGfLCCLrj3sBRSG5g6VARrtRKRKs3WKolSG_Q-NayPD/exec';
 
-    const resultsArea = document.getElementById('resultsArea');
-    const resultCard = document.getElementById('resultCard');
-    const messageArea = document.getElementById('messageArea');
+const cpfInput = document.getElementById('cpfInput');
+const resultsArea = document.getElementById('resultsArea');
+const resultCard = document.getElementById('resultCard');
+const messageArea = document.getElementById('messageArea');
 
-    /* ===============================
-       FORMATAR CPF (VISUAL)
-    =============================== */
-    function formatCPF(input) {
-        let value = input.value.replace(/\D/g, '').substring(0, 11);
+function formatCPF(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    input.value = v;
+}
 
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+async function searchStudent() {
+    const cpf = cpfInput.value.replace(/\D/g, '');
+    resetUI();
 
-        input.value = value;
+    if (cpf.length !== 11) {
+        showMessage('Digite um CPF válido.', 'bg-yellow-100 text-yellow-800 border-yellow-300');
+        return;
     }
 
-    /* ===============================
-       CONSULTA PRINCIPAL
-    =============================== */
-    async function searchStudent() {
-        const cleanedCpf = cpfInput.value.replace(/\D/g, '');
+    try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cpf })
+        });
 
-        resetUI();
+        const data = await res.json();
 
-        if (cleanedCpf.length !== 11) {
-            showMessage('Digite um CPF válido com 11 dígitos.', 'bg-yellow-100 text-yellow-800 border-yellow-300');
-            return;
+        if (data.nome) {
+            displayResults(data);
+        } else {
+            showMessage('CPF não encontrado.', 'bg-red-100 text-red-800 border-red-300');
         }
-
-        try {
-            const response = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cpf: cleanedCpf })
-            });
-
-            if (!response.ok) throw new Error('Erro de comunicação.');
-
-            const data = await response.json();
-
-            if (data && data.nome) {
-                displayResults(data);
-            } else {
-                showMessage('CPF não encontrado.', 'bg-red-100 text-red-800 border-red-300');
-            }
-
-        } catch (error) {
-            console.error(error);
-            showMessage('Erro de conexão. Tente novamente.', 'bg-gray-100 text-gray-700 border-gray-300');
-        }
+    } catch {
+        showMessage('Erro de conexão. Tente novamente.', 'bg-gray-100 text-gray-700 border-gray-300');
     }
+}
 
-    /* ===============================
-       UI HELPERS
-    =============================== */
-    function resetUI() {
-        resultsArea.classList.add('hidden');
-        messageArea.classList.add('hidden');
-        resultCard.innerHTML = '';
-        messageArea.innerHTML = '';
-    }
+function displayResults(s) {
+    let status = (s.resultado || '').toUpperCase();
+    if (status === 'RETIDO') status = 'REPROVADO';
+    if (status === 'SUCESSO') status = 'APROVADO';
 
-    function showMessage(text, classes) {
-        messageArea.className = `p-4 rounded-lg text-center font-medium border ${classes}`;
-        messageArea.innerHTML = text;
-        messageArea.classList.remove('hidden');
-    }
+    const aprovado = status === 'APROVADO';
 
-    /* ===============================
-       EXIBIR RESULTADO
-    =============================== */
-    function displayResults(student) {
-        let status = (student.resultado || '').toUpperCase();
+    resultCard.className = `
+        p-5 rounded-xl shadow-xl border-2
+        ${aprovado ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}
+    `;
 
-        if (status === 'SUCESSO') status = 'APROVADO';
-        if (status === 'RETIDO') status = 'REPROVADO';
-
-        const aprovado = status === 'APROVADO';
-        const color = aprovado ? 'green' : 'red';
-        const icon = aprovado ? '✅' : '❌';
-
-        const media = isNaN(student.media) ? 'N/A' : Number(student.media).toFixed(1);
-
-        resultCard.className = `p-5 rounded-xl border-2 bg-${color}-50 border-${color}-400 shadow-xl`;
-
-        resultCard.innerHTML = `
-            <div class="space-y-4">
-                <p class="text-xl font-bold text-gray-900 uppercase">${student.nome}</p>
-
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-${color}-600 text-white">
-                    <span class="text-2xl">${icon}</span>
-                    <span class="text-xl font-semibold">Situação: ${status}</span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 text-gray-700">
-                    <div>
-                        <p class="text-sm text-gray-500">CPF</p>
-                        <p class="text-lg font-semibold">${student.cpf}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500">Média Final</p>
-                        <p class="text-lg font-semibold">${media}</p>
-                    </div>
-                </div>
+    resultCard.innerHTML = `
+        <p class="text-xl font-bold uppercase">${s.nome}</p>
+        <div class="mt-3 p-3 rounded-lg text-white ${aprovado ? 'bg-green-600' : 'bg-red-600'}">
+            ${aprovado ? '✅' : '❌'} Situação: ${status}
+        </div>
+        <div class="grid grid-cols-2 gap-4 mt-4 text-gray-700">
+            <div>
+                <p class="text-sm text-gray-500">CPF</p>
+                <p class="font-semibold">${s.cpf}</p>
             </div>
-        `;
+            <div>
+                <p class="text-sm text-gray-500">Média</p>
+                <p class="font-semibold">${Number(s.media).toFixed(1)}</p>
+            </div>
+        </div>
+    `;
 
-        resultsArea.classList.remove('hidden');
-    }
+    resultsArea.classList.remove('hidden');
+}
 
-    // ENTER PARA CONSULTAR
-    cpfInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') searchStudent();
-    });
+function resetUI() {
+    resultsArea.classList.add('hidden');
+    messageArea.classList.add('hidden');
+}
+
+function showMessage(msg, cls) {
+    messageArea.className = `p-4 rounded-lg text-center font-medium border ${cls}`;
+    messageArea.innerHTML = msg;
+    messageArea.classList.remove('hidden');
+}
+
+cpfInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchStudent();
+});
 </script>
 
 </body>
